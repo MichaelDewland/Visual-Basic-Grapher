@@ -52,7 +52,7 @@ Module Module1
             equation = removeExcessWhitespace(equation)
             splitAtWhitespace = equation.Split(" ")
             tokens = getTokensFromStrings(splitAtWhitespace)
-            shunted = shunt(tokens)
+            shunted = shunt(tokens) ' turn them into evaluatable RPN
             Return shunted
         End Function
 
@@ -74,7 +74,9 @@ Module Module1
         End Function
 
         Private Shared Function shunt(ByVal tokens As List(Of String())) As List(Of String())
-
+            ' Dijkstra's Shunting Yard algorithm
+            ' https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwj0zqSympeEAxXyXUEAHSLFAt4QFnoECCMQAw&url=https%3A%2F%2Fmath.oxford.emory.edu%2Fsite%2Fcs171%2FshuntingYardAlgorithm%2F%23%3A~%3Atext%3DEdsger%2520Dijkstra%2520developed%2520his%2520%2522Shunting%2Cthe%2520operators%2520in%2520the%2520expression.&usg=AOvVaw1lIv7iXYQU3b4p_xFkURLI&opi=89978449
+            
             Dim valueQueue As New List(Of String())
             Dim operatorStack As New Stack(Of String())
 
@@ -92,15 +94,19 @@ Module Module1
                 Dim value As String = token(1)
 
                 Dim precedence As Integer = getPrecedence(token, precedences)
-
+            
+                ' 1. If the incoming symbols is an operand, add to queue
                 If type = "Num" OrElse type = "Var" Then
                     valueQueue.Add(token)
                 End If
-
+            
+                ' 2. If the incoming symbol is a left parenthesis, push it on the stack.
                 If type = "LParen" Then
                     operatorStack.Push(token)
                 End If
 
+                ' 3. If the incoming symbol is a right parenthesis: discard the right parenthesis, 
+                ' pop and print the stack symbols until you see a left parenthesis. Pop the left parenthesis and discard it.
                 If type = "RParen" Then
                     While operatorStack.Count > 0 AndAlso operatorStack.Peek()(0) <> "LParen"
                         valueQueue.Add(operatorStack.Pop())
@@ -111,6 +117,7 @@ Module Module1
                     End If
                 End If
 
+                ' 4. If the incoming symbol is an operator and the stack is empty or contains a left parenthesis on top, push the incoming operator onto the stack.
                 If type = "Op" OrElse type = "Word" Then
 
                     Dim topPrecedence As Integer
@@ -121,10 +128,15 @@ Module Module1
                         topPrecedence = getPrecedence(operatorStack.Peek(), precedences)
                     End If
 
+                    ' 5. If the incoming symbol is an operator and has either higher precedence than the operator on the top of the stack, 
+                    ' or has the same precedence as the operator on the top of the stack and is right associative, or if the stack is empty, or if the top of the stack is "(" (a floor) -- push it on the stack.
                     If operatorStack.Count = 0 OrElse operatorStack.Peek()(0) = "LParen" Then
                         operatorStack.Push(token)
                     ElseIf precedence > topPrecedence OrElse (precedence = topPrecedence And type = "Word") Then
                         operatorStack.Push(token)
+
+                    ' 6. If the incoming symbol is an operator and has either lower precedence than the operator on the top of the stack,
+                    ' or has the same precedence as the operator on the top of the stack and is left associative -- continue to pop the stack until this is not true. Then, push the incoming operator.
                     ElseIf precedence < topPrecedence OrElse (precedence = topPrecedence And type = "Op") Then
                         Do While operatorStack.Count > 0 AndAlso (precedence < topPrecedence OrElse (precedence = topPrecedence And type = "Op"))
                             valueQueue.Add(operatorStack.Pop())
@@ -138,6 +150,7 @@ Module Module1
                 End If
             Next
 
+            ' 7. At the end of the expression, pop and enqueue all operators on the stack.
             While operatorStack.Count > 0
                 valueQueue.Add(operatorStack.Pop())
             End While
@@ -173,7 +186,7 @@ Module Module1
                 Dim value As String = token(1)
 
                 If currentType <> "None" Then
-
+                    ' merge any currently considdered tokens
                     If type <> currentType Or type = "LParen" Or type = "RParen" Or type = "Op" Then
                         mergedToken = mergeTokens(currentTokenWord, currentType)
                         tokens.Add(mergedToken)
@@ -185,7 +198,8 @@ Module Module1
                 currentTokenWord.Add(token)
                 currentType = type
             Next
-
+    
+            ' merge last token
             If currentTokenWord.Count > 0 Then
                 mergedToken = mergeTokens(currentTokenWord, currentType)
                 tokens.Add(mergedToken)
@@ -253,6 +267,7 @@ Module Module1
             Me.equationString = equationString
             Me.RPN = Tokeniser.tokenize(equationString)
 
+            ' create basic operators
             operatorDictionary("+") = Function(a, b) a + b
             operatorDictionary("-") = Function(a, b) a - b
             operatorDictionary("*") = Function(a, b) a * b
@@ -264,6 +279,7 @@ Module Module1
 
             Dim calculationStack As New Stack(Of Decimal)
 
+            ' evaluate RPN and return the sign of the resulting calculation
             For Each token In RPN
                 Dim type As String = token(0)
                 Dim value As String = token(1)
@@ -362,6 +378,9 @@ Module Module1
                 dx = x / WIDTH * SCALE - OFFSET_X
                 dy = y / HEIGHT * SCALE - OFFSET_Y
 
+                ' evaluate the equation at each corner, a mixture of positive and negative signs will total < 4,
+                ' therefore the point on the coordinate grid crosses the equation and must be shaded.
+                ' This method for shading can only show fine details if the x and y axes are scaled. 
                 total += equation.evaluateSignAt(dx - offsetX, dy + offsetY) ' Top left
                 total += equation.evaluateSignAt(dx + offsetX, dy + offsetY) ' Top Right
                 total += equation.evaluateSignAt(dx - offsetX, dy - offsetY) ' Bottom left
