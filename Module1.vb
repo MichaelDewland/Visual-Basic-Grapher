@@ -1,4 +1,4 @@
-﻿Imports System.Data.SqlTypes
+Imports System.Data.SqlTypes
 Imports System.Net.Http.Headers
 Imports System.Runtime.CompilerServices
 
@@ -20,6 +20,26 @@ Module Module1
     Dim CALCULATION_OFFSET_Y As Decimal = 0.5
 
     Dim functionDictionary As New Dictionary(Of String, Func(Of Double, Double))
+
+    Sub Main()
+
+        ' Define any useful functions that can be used in an equation
+        functionDictionary("sin") = Function(a) Math.Sin(a)
+        functionDictionary("cos") = Function(a) Math.Cos(a)
+        functionDictionary("tan") = Function(a) Math.Tan(a)
+
+        Dim equations As New List(Of Equation)
+        equations.Add(New Axis())
+        equations.Add(New Equation("(cos x) / (tan (x)) - y", ConsoleColor.Blue))
+        equations.Add(New Equation("y^2 - x^3 + x", ConsoleColor.Green))
+        equations.Add(New Equation("(x^2 + 0.5*y^2 - 1)^3 - (x^2 * 0.5*y^3)", ConsoleColor.Magenta))
+
+        For Each equation In equations
+            plotEquation(equation)
+        Next
+
+        Console.ReadKey()
+    End Sub
 
     Class Tokeniser
 
@@ -359,25 +379,5 @@ Module Module1
                 End If
             Next
         Next
-    End Sub
-
-    Sub Main()
-
-        ' Define any useful functions that can be used in an equation
-        functionDictionary("sin") = Function(a) Math.Sin(a)
-        functionDictionary("cos") = Function(a) Math.Cos(a)
-        functionDictionary("tan") = Function(a) Math.Tan(a)
-
-        Dim equations As New List(Of Equation)
-        equations.Add(New Axis())
-        equations.Add(New Equation("(cos x) / (tan (x)) - y", ConsoleColor.Blue))
-        equations.Add(New Equation("y^2 - x^3 + x", ConsoleColor.Green))
-        equations.Add(New Equation("(x^2 + 0.5*y^2 - 1)^3 - (x^2 * 0.5*y^3)", ConsoleColor.Magenta))
-
-        For Each equation In equations
-            plotEquation(equation)
-        Next
-
-        Console.ReadKey()
     End Sub
 End Module
